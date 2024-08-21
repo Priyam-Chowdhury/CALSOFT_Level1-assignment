@@ -1,0 +1,77 @@
+pipeline {
+    agent any
+
+    environment {
+        GIT_REPO_PYTHON = 'https://github.com/Priyam-Chowdhury/Jenkins_test.git'
+        GIT_BRANCH_PYTHON = 'main'
+        PYTHON_FILE = 'test.py'
+        DOCKER_IMAGE = 'python:3.9.19-slim-bullseye'
+        GIT_REPO_JAR = 'https://github.com/Priyam-Chowdhury/CALSOFT_L1_Assignment2.git'
+        JAR_BUILD_COMMAND = 'mvn clean package -DskipTests'
+        LOCAL_JAR_DIR = '/home/priyam/Desktop/L1_assignment_4'  // Local directory for JAR file
+        S3_BUCKET = 'priyam-bucket-s3'         
+        AWS_ACCESS_KEY_ID = 'AKIAYS2NR5LSS74ZIESO'
+        AWS_SECRET_ACCESS_KEY = '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'
+    }
+
+    stages {
+        stage('Parallel Jobs') {
+            parallel {
+                stage('Run Python Script in Docker') {
+                    steps {
+                        script {
+                            // Clone the repository
+                            sh "git clone ${GIT_REPO_PYTHON}"
+                            sh 'pwd'
+                            
+                            // Pull the Docker image
+                            sh "docker pull ${DOCKER_IMAGE}"
+ 
+                            // Run the Docker container and execute the Python script
+                            sh "docker run -v /var/lib/jenkins/workspace/CALSOFT-L1-Assignment4/Jenkins_test:/usr/src/app -w /usr/src/app ${DOCKER_IMAGE} python ${PYTHON_FILE}"
+                        }
+                    }
+                }
+                
+                stage('Build JAR File') {
+                    steps {
+                        script {
+                            // Clone the repository
+                           
+                            sh "git clone ${GIT_REPO_JAR}"
+                            dir("/var/lib/jenkins/workspace/CALSOFT-L1-Assignment4/CALSOFT_L1_Assignment2"){
+                            //sh 'cd CALSOFT_L1_Assignment2'
+                            sh "pwd"
+                            sh "mvn clean package -DskipTests"
+                            sh 'cp /var/lib/jenkins/workspace/CALSOFT-L1-Assignment4/CALSOFT_L1_Assignment2/target/*.jar /home/priyam/Desktop/L1_assignment_4'
+                            }
+                                
+                                // Build the JAR file and output it to a directory that's bind-mounted
+                                
+                            }
+                        }
+                    }
+                }
+            }
+        stage('Upload JAR to S3') {
+            steps {
+                script {
+                    // Ensure AWS CLI is installed and configured
+                    //sh "aws s3 cp /home/priyam/Desktop/L1_assignment_4/my-app-1.0-SNAPSHOT.jar s3://${S3_BUCKET}/my-app-1.0-SNAPSHOT.jar"
+                     withEnv(["AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}", "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}"]) {
+                        // Upload JAR file to S3
+                        sh "aws s3 cp /home/priyam/Desktop/L1_assignment_4/my-app-1.0-SNAPSHOT.jar s3://${S3_BUCKET}/my-app-1.0-SNAPSHOT.jar"
+                    }
+                }
+            }
+        }
+        }
+    
+
+    post {
+        always {
+            // Clean up workspace
+            cleanWs()
+        }
+    }
+}
