@@ -1,0 +1,10 @@
+---
+- name: Copy JAR file to S3 
+  hosts: localhost  
+
+  vars:
+    s3_bucket: "priyam-bucket-s3"
+
+  tasks:
+    - name: Copy JAR file to S3
+      command: aws s3 cp /home/priyam/Desktop/playbooks/my-app.jar s3://{{ s3_bucket }}/my-app.jar

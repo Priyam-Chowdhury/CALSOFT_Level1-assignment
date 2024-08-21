@@ -1,0 +1,30 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Ensuring git is installed
+      become: yes
+      apt:
+        name: git
+        state: present
+
+    - name: Clone or update the repository
+      git:
+        repo: https://github.com/Priyam-Chowdhury/Ansible_push_Calsoft.git
+        dest: /home/priyam/Desktop/playbooks/Ansible_push_Calsoft
+        clone: yes
+        update: yes
+
+    - name: Copy JAR file to the repository directory
+      copy:
+        src: /home/priyam/Desktop/playbooks/my-app.jar
+        dest: /home/priyam/Desktop/playbooks/Ansible_push_Calsoft/my-app.jar
+
+    - name: Stage changes for commit
+      command: chdir=/home/priyam/Desktop/playbooks/Ansible_push_Calsoft git add my-app.jar
+
+    - name: Commit changes
+      command: chdir=/home/priyam/Desktop/playbooks/Ansible_push_Calsoft git commit -m "Add my-app.jar"
+
+    - name: Push changes to the repository
+      command: chdir=/home/priyam/Desktop/playbooks/Ansible_push_Calsoft git push origin main
